@@ -1,38 +1,32 @@
 import os
 import json
-from telegram.ext import ConversationHandler
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, CallbackQueryHandler,
     MessageHandler, ContextTypes, ConversationHandler, filters
 )
 
-
+# Variáveis do ambiente
 TOKEN = os.environ["TOKEN"]
 ADMIN_IDS = [7968066840]
 VALOR_IENE_REAL = float(os.environ["VALOR_IENE_REAL"])
-TAXA_SERVICO = float(os.environ["TAXA_SERVICO"]) 
-TAXA_PIX = float(os.environ["TAXA_SERVICO"]) 
+TAXA_SERVICO = float(os.environ["TAXA_SERVICO"])
+TAXA_PIX = float(os.environ["TAXA_PIX"])
 CHAVE_PIX = os.environ["CHAVE_PIX"]
 URL_WHATSAPP = "https://wa.me/818030734889"
 URL_FORMULARIO = "https://forms.gle/SBV9vUrenLN7VELi6"
 BOT_USERNAME = "@Enviamosjpbot"
 GROUP_USERNAME = "@enviamos_jp"
 
-produtos = {}
-carrinhos = {}
-cadastro_temp = {}
-
-
-# Estados do cadastro
-NOME_PROD, DESCRICAO, PRECO, FOTO = range(4)
-
-# IDs do fluxo de coleta
-NOME_CLI, SUITE, TELEFONE, EMAIL, COMPROVANTE = range(5)
-
-# Arquivos locais
+# Arquivos
 ARQ_PRODUTOS = "produtos.json"
 ARQ_CARRINHOS = "carrinhos.json"
+
+# Estados
+NOME_PROD, DESCRICAO, PRECO, FOTO = range(4)
+NOME_CLI, SUITE, TELEFONE, EMAIL, COMPROVANTE = range(5)
+
+produtos, carrinhos, cadastro_temp = {}, {}, {}
 
 if os.path.exists(ARQ_PRODUTOS):
     with open(ARQ_PRODUTOS) as f:
@@ -45,14 +39,43 @@ if os.path.exists(ARQ_CARRINHOS):
 def salvar_produtos(): json.dump(produtos, open(ARQ_PRODUTOS, "w"))
 def salvar_carrinhos(): json.dump(carrinhos, open(ARQ_CARRINHOS, "w"))
 
+# Comandos
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.effective_user.id)
+    if context.args and context.args[0].startswith("prod"):
+        pid = context.args[0][4:]
+        carrinho = carrinhos.get(user_id, [])
+        for i in carrinho:
+            if i["id"] == pid:
+                i["quantidade"] += 1
+                break
+        else:
+            carrinho.append({"id": pid, "quantidade": 1})
+        carrinhos[user_id] = carrinho
+        salvar_carrinhos()
+        await update.message.reply_text(
+            "✅ Produto adicionado ao seu carrinho!",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🛒 Ver carrinho", callback_data="ver_carrinho")]])
+        )
+    return ConversationHandler.END
+
+async def ver_produtos(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    for pid, info in produtos.items():
+        await update.message.reply_photo(
+            photo=info["foto"],
+            caption=f"{info['nome']}\n🇯🇵¥{info['preco']} | 🇧🇷R$ {info['preco'] * VALOR_IENE_REAL:.2f}",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Comprar", url=f"https://t.me/{BOT_USERNAME}?start=prod{pid}")]])
+        )
+
+# Cadastro
 async def cadastrar(update, context):
-        user_id = update.effective_user.id
-        if user_id not in ADMIN_IDS:
-            await update.message.reply_text("❌ Você não tem permissão para cadastrar produtos.")
-            return ConversationHandler.END
-        cadastro_temp[user_id] = {}
-        await update.message.reply_text(" Agora envie o *Nome do Produto*", parse_mode="Markdown")
-        return NOME_PROD
+    user_id = update.effective_user.id
+    if user_id not in ADMIN_IDS:
+        await update.message.reply_text("❌ Você não tem permissão para cadastrar produtos.")
+        return ConversationHandler.END
+    cadastro_temp[user_id] = {}
+    await update.message.reply_text(" Agora envie o *Nome do Produto*", parse_mode="Markdown")
+    return NOME_PROD
 
 async def receber_nome(update, context):
     user_id = update.effective_user.id
@@ -83,15 +106,12 @@ async def receber_foto(update, context):
     produto = cadastro_temp[user_id]
     produto['foto'] = foto
 
-    # Salvar produto com ID automático
     produto_id = str(len(produtos) + 1)
     produtos[produto_id] = produto
     salvar_produtos()
 
-    # Preço convertido para real
     preco_real = produto['preco'] * VALOR_IENE_REAL
 
-    # Mensagem a ser postada no grupo
     texto = (
         f"*{produto['nome']}*\n"
         f"{produto['descricao']}\n\n"
@@ -116,7 +136,7 @@ async def receber_foto(update, context):
 async def cancelar_cadastro(update, context):
     await update.message.reply_text("❌ Cadastro cancelado.")
     return ConversationHandler.END
-        
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
     if context.args and context.args[0].startswith("prod"):
@@ -312,7 +332,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                    print("Erro ao editar a mensagem:", e)
 
        return ConversationHandler.END
-        
+
 async def receber_nome_cliente(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["nome"] = update.message.text
     await update.message.reply_text("Informe sua *suíte*", parse_mode="Markdown")
@@ -342,7 +362,7 @@ async def receber_email_cliente(update: Update, context: ContextTypes.DEFAULT_TY
             parse_mode="Markdown"
     )
         return COMPROVANTE
-   
+
 async def receber_comprovante(update: Update, context: ContextTypes.DEFAULT_TYPE):
        user_id = str(update.effective_user.id)
        if not update.message.photo:
@@ -379,43 +399,40 @@ async def cancelar(update, context):
     return ConversationHandler.END
 
 def main():
-        app = ApplicationBuilder().token(TOKEN).build()
+       app = ApplicationBuilder().token(TOKEN).build()
 
-        # Comandos básicos
-        app.add_handler(CommandHandler("start", start))
-        app.add_handler(CommandHandler("produtos", ver_produtos))
+       app.add_handler(CommandHandler("start", start))
+       app.add_handler(CommandHandler("produtos", ver_produtos))
 
-        # Handlers de ações do carrinho e botões
-        app.add_handler(CallbackQueryHandler(callback_handler, pattern="^(ver_carrinho|add_.*|sub_.*|del_.*|cancelar_pedido)$"))
+       # Botões carrinho
+       app.add_handler(CallbackQueryHandler(callback_handler, pattern="^(ver_carrinho|add_.*|sub_.*|del_.*|cancelar_pedido|confirmar|finalizar)$"))
 
-        # Handler apenas para o botão "confirmar", que inicia o fluxo de coleta de dados
-        app.add_handler(ConversationHandler(
-            entry_points=[
-                CallbackQueryHandler(callback_handler, pattern="confirmar"),
-                CallbackQueryHandler(callback_handler, pattern="finalizar"),
-            ],
-            states={
-                NOME_CLI: [MessageHandler(filters.TEXT & ~filters.COMMAND, receber_nome_cliente)],
-                SUITE: [MessageHandler(filters.TEXT & ~filters.COMMAND, receber_suite_cliente)],
-                TELEFONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, receber_telefone_cliente)],
-                EMAIL: [MessageHandler(filters.TEXT & ~filters.COMMAND, receber_email_cliente)],
-                COMPROVANTE: [MessageHandler(filters.PHOTO, receber_comprovante)],
-            },
-            fallbacks=[CommandHandler("cancelar", cancelar)],
-        ))
+       # Pedido
+       app.add_handler(ConversationHandler(
+           entry_points=[CallbackQueryHandler(callback_handler, pattern="^(confirmar|finalizar)$")],
+           states={
+               NOME_CLI: [MessageHandler(filters.TEXT & ~filters.COMMAND, receber_nome_cliente)],
+               SUITE: [MessageHandler(filters.TEXT & ~filters.COMMAND, receber_suite_cliente)],
+               TELEFONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, receber_telefone_cliente)],
+               EMAIL: [MessageHandler(filters.TEXT & ~filters.COMMAND, receber_email_cliente)],
+               COMPROVANTE: [MessageHandler(filters.PHOTO, receber_comprovante)],
+           },
+           fallbacks=[CommandHandler("cancelar", cancelar)]
+       ))
 
-        # Cadastro de produtos pelos admins
-        app.add_handler(ConversationHandler(
-            entry_points=[CommandHandler("cadastrar", cadastrar)],
-            states={
-                NOME_PROD: [MessageHandler(filters.TEXT & ~filters.COMMAND, receber_nome)],
-                DESCRICAO: [MessageHandler(filters.TEXT & ~filters.COMMAND, receber_descricao)],
-                PRECO: [MessageHandler(filters.TEXT & ~filters.COMMAND, receber_preco)],
-                FOTO: [MessageHandler(filters.PHOTO, receber_foto)],
-            },
-            fallbacks=[CommandHandler("cancelar", cancelar_cadastro)],
-        ))
-# atualização para o Render
-        app.run_polling()
+       # Cadastro de produtos
+       app.add_handler(ConversationHandler(
+           entry_points=[CommandHandler("cadastrar", cadastrar)],
+           states={
+               NOME_PROD: [MessageHandler(filters.TEXT & ~filters.COMMAND, receber_nome)],
+               DESCRICAO: [MessageHandler(filters.TEXT & ~filters.COMMAND, receber_descricao)],
+               PRECO: [MessageHandler(filters.TEXT & ~filters.COMMAND, receber_preco)],
+               FOTO: [MessageHandler(filters.PHOTO, receber_foto)],
+           },
+           fallbacks=[CommandHandler("cancelar", cancelar_cadastro)],
+       ))
+
+       app.run_polling()
+
 if __name__ == "__main__":
-    main()
+       main()
