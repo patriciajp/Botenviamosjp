@@ -415,7 +415,7 @@ def main():
             },
             fallbacks=[CommandHandler("cancelar", cancelar_cadastro)],
         ))
-
+# atualização para o Render
         app.run_polling()
 if __name__ == "__main__":
     main()
