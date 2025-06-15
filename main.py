@@ -8,12 +8,12 @@ from telegram.ext import (
 )
 
 
-TOKEN = "7333842067:AAEynLOdFTnJeMRw-fhYhfU-UT0PFXoTduE"
+TOKEN = os.environ["TOKEN"]
 ADMIN_IDS = [7968066840]
-VALOR_IENE_REAL = 0.039
-TAXA_SERVICO = 0.20
-TAXA_PIX = 0.0099
-CHAVE_PIX = "pattywatanabe@outlook.com"
+VALOR_IENE_REAL = float(os.environ["VALOR_IENE_REAL"])
+TAXA_SERVICO = float(os.environ["TAXA_SERVICO"]) 
+TAXA_PIX = float(os.environ["TAXA_SERVICO"]) 
+CHAVE_PIX = os.environ["CHAVE_PIX"]
 URL_WHATSAPP = "https://wa.me/818030734889"
 URL_FORMULARIO = "https://forms.gle/SBV9vUrenLN7VELi6"
 BOT_USERNAME = "@Enviamosjpbot"
