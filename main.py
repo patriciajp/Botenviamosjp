@@ -24,7 +24,7 @@ ARQ_CARRINHOS = "carrinhos.json"
 
 # Estados
 NOME_PROD, DESCRICAO, PRECO, FOTO = range(4)
-NOME_CLI, SUITE, TELEFONE, EMAIL, COMPROVANTE = range(5)
+NOME_CLI, SUITE, TELEFONE, EMAIL, COMPROVANTE = range(5, 10)
 
 produtos, carrinhos, cadastro_temp = {}, {}, {}
 
