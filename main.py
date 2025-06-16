@@ -7,12 +7,12 @@ from telegram.ext import (
 )
 
 # Variáveis do ambiente
-TOKEN = os.environ["TOKEN"]
+TOKEN = os.environ.get("TOKEN", "7333842067:AAEynLOdFTnJeMRw-fhYhfU-UT0PFXoTduE")
 ADMIN_IDS = [7968066840]
-VALOR_IENE_REAL = float(os.environ["VALOR_IENE_REAL"])
-TAXA_SERVICO = float(os.environ["TAXA_SERVICO"])
-TAXA_PIX = float(os.environ["TAXA_PIX"])
-CHAVE_PIX = os.environ["CHAVE_PIX"]
+VALOR_IENE_REAL = float(os.environ.get("VALOR_IENE_REAL",0.039))
+TAXA_SERVICO = float(os.environ.get("TAXA_SERVICO", 0.20))
+TAXA_PIX = float(os.environ.get("TAXA_PIX", 0.0099))
+CHAVE_PIX = os.environ.get("CHAVE_PIX", "pattywatanabe@outlook.com")
 URL_WHATSAPP = "https://wa.me/818030734889"
 URL_FORMULARIO = "https://forms.gle/SBV9vUrenLN7VELi6"
 BOT_USERNAME = "@Enviamosjpbot"
