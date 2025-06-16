@@ -40,24 +40,7 @@ def salvar_produtos(): json.dump(produtos, open(ARQ_PRODUTOS, "w"))
 def salvar_carrinhos(): json.dump(carrinhos, open(ARQ_CARRINHOS, "w"))
 
 # Comandos
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    if context.args and context.args[0].startswith("prod"):
-        pid = context.args[0][4:]
-        carrinho = carrinhos.get(user_id, [])
-        for i in carrinho:
-            if i["id"] == pid:
-                i["quantidade"] += 1
-                break
-        else:
-            carrinho.append({"id": pid, "quantidade": 1})
-        carrinhos[user_id] = carrinho
-        salvar_carrinhos()
-        await update.message.reply_text(
-            "✅ Produto adicionado ao seu carrinho!",
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🛒 Ver carrinho", callback_data="ver_carrinho")]])
-        )
-    return ConversationHandler.END
+
 
 async def ver_produtos(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for pid, info in produtos.items():
@@ -185,8 +168,8 @@ def gerar_resumo(user_id):
     resumo = (
         "\n".join(linhas) + "\n\n" +
         f"*Subtotal:* ¥{subtotal} | R${subtotal*r:.2f}\n" +
-        f"*Serviço (20%):* ¥{servico} | R${servico*r:.2f}\n" +
-        f"*Pix (0.99%):* ¥{pix} | R${pix*r:.2f}\n" +
+        f"*Taxa do Serviço (20%):* ¥{servico} | R${servico*r:.2f}\n" +
+        f"*Taxa do Pix (0.99%):* ¥{pix} | R${pix*r:.2f}\n" +
         f"*Total:* ¥{total} | R${total*r:.2f}"
     )
     return resumo, total, fotos
@@ -405,7 +388,7 @@ def main():
        app.add_handler(CommandHandler("produtos", ver_produtos))
 
        # Botões carrinho
-       app.add_handler(CallbackQueryHandler(callback_handler, pattern="^(ver_carrinho|add_.*|sub_.*|del_.*|cancelar_pedido|confirmar|finalizar)$"))
+       app.add_handler(CallbackQueryHandler(callback_handler, pattern="^(ver_carrinho|add_.*|sub_.*|del_.*|cancelar_pedido|confirmar)$"))
 
        # Pedido
        app.add_handler(ConversationHandler(
