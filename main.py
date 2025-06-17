@@ -415,25 +415,26 @@ def main():
            fallbacks=[CommandHandler("cancelar", cancelar_cadastro)],
        ))
 
-       app.run_polling()
 
 from flask import Flask
 from threading import Thread
+import os
 
 app = Flask('')
 
 @app.route('/')
 def home():
-    return "✅ Bot Enviamos JP está funcionando!"
+    return "✅ Bot Enviamos JP está funcionando!", 200
 
 def manter_online():
-    Thread(target=lambda: app.run(host='0.0.0.0', port=8080)).start()
-
+    Thread(target=lambda: app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 8080)))).start()
+    
 @app.route('/healthz')
 def healthz():
     return "OK"
     
 manter_online()
+application.run_polling()
 
 if __name__ == "__main__":
        main()
