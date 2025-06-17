@@ -429,6 +429,10 @@ def home():
 def manter_online():
     Thread(target=lambda: app.run(host='0.0.0.0', port=8080)).start()
 
+@app.route('/healthz')
+def healthz():
+    return "OK"
+    
 manter_online()
 
 if __name__ == "__main__":
