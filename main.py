@@ -417,5 +417,19 @@ def main():
 
        app.run_polling()
 
+from flask import Flask
+from threading import Thread
+
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "✅ Bot Enviamos JP está funcionando!"
+
+def manter_online():
+    Thread(target=lambda: app.run(host='0.0.0.0', port=8080)).start()
+
+manter_online()
+
 if __name__ == "__main__":
        main()
