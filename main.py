@@ -1,5 +1,8 @@
 import os
 import json
+import asyncio
+from flask import Flask
+from threading import Thread
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, CallbackQueryHandler,
@@ -17,6 +20,8 @@ URL_WHATSAPP = "https://wa.me/818030734889"
 URL_FORMULARIO = "https://forms.gle/SBV9vUrenLN7VELi6"
 BOT_USERNAME = "@Enviamosjpbot"
 GROUP_USERNAME = "@enviamos_jp"
+
+app = ApplicationBuilder().token(TOKEN).build()
 
 # Arquivos
 ARQ_PRODUTOS = "produtos.json"
@@ -381,9 +386,8 @@ async def cancelar(update, context):
     await update.message.reply_text("❌ Cadastro cancelado.")
     return ConversationHandler.END
 
-def main():
-       app = ApplicationBuilder().token(TOKEN).build()
-
+def configurar_handlers():
+      
        app.add_handler(CommandHandler("start", start))
        app.add_handler(CommandHandler("produtos", ver_produtos))
 
@@ -416,25 +420,28 @@ def main():
        ))
 
 
-from flask import Flask
-from threading import Thread
-import os
+# Servidor Flask para manter o bot online no Render
+app_flask = Flask(__name__)
 
-app = Flask('')
-
-@app.route('/')
+@app_flask.route('/')
 def home():
     return "✅ Bot Enviamos JP está funcionando!", 200
 
-def manter_online():
-    Thread(target=lambda: app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 8080)))).start()
-    
-@app.route('/healthz')
+@app_flask.route('/healthz')
 def healthz():
-    return "OK"
+    return "OK", 200
+
+def manter_online():
+    Thread(target=lambda: app_flask.run(host='0.0.0.0', port=int(os.environ.get("PORT", 8080)))).start()
     
-manter_online()
-application.run_polling()
+
+async def main():
+    manter_online()
+    configurar_handlers()
+    await app.run_polling()
 
 if __name__ == "__main__":
-       main()
+    import nest_asyncio
+    nest_asyncio.apply()
+    asyncio.get_event_loop().run_until_complete(main())
+    
